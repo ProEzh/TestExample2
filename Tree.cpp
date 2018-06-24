@@ -1,63 +1,42 @@
 #include "Tree.h"
+#include "Node.h"
+#include <iostream>
+#include <cassert>
 
 Tree::Tree() {
 	root = nullptr;
 }
 
-Tree::Tree(Node* elem) {
-	root = elem;
+bool Tree::isEmpty() const {
+	return !root;
 }
 
-bool Tree::isEmpty() {
-	if (!root)
-		return true;
-	return false;
+//рекурсивный обход поддерева для поиска листьев и вывода их значений
+void Tree::orderInSubTree(Node* temp, std::ostream& stream) { 
+	if (!temp)
+		return;
+	if (temp->hasValue) 
+		stream << temp->value << ' ';
+	orderInSubTree(temp->next, stream);
+	orderInSubTree(temp->link, stream);
 }
-
-void orderInSubTree(Node* temp) {
-	if (temp->getIsLeaf()) {
-		std::cout << temp->getValue() << ' ';
-		if (temp->getNext() != nullptr && temp->getLink() != nullptr) {
-			orderInSubTree(temp->getNext());
-			orderInSubTree(temp->getLink());
-		}
-		else if (temp->getNext() != nullptr && temp->getLink() == nullptr) {
-			orderInSubTree(temp->getNext());
-		}
-		else if (temp->getLink() != nullptr && temp->getNext() == nullptr) {
-			orderInSubTree(temp->getLink());
-		}
-		else
-			return;
+//вспомогательная функция вставки элемента в дерево
+Node* Tree::insert_word(Node* temp, const char* word, size_t length, size_t index) {
+	assert(word && index < length);
+	if (!temp) {
+		return nullptr;
 	}
-	else {
-		if (temp->getNext() != nullptr && temp->getLink() != nullptr) {
-			orderInSubTree(temp->getNext());
-			orderInSubTree(temp->getLink());
-		}
-		else if (temp->getNext() != nullptr && temp->getLink() == nullptr) {
-			orderInSubTree(temp->getNext());
-		}
-		else if (temp->getLink() != nullptr && temp->getNext() == nullptr) {
-			orderInSubTree(temp->getLink());
-		}
-		else
-			return;
-	}
-}
-
-Node* insert_word(Node* temp, char* word, size_t length, size_t index) {
-	if (temp->getKey() != word[index]) {
-		if (temp->getLink() != nullptr) {
-			return insert_word(temp->getLink(), word, length, index);
+	if (temp->key != word[index]) {
+		if (temp->link) {
+			return insert_word(temp->link, word, length, index);
 		}
 		else {
-			temp->setLink(new Node(word[index], nullptr, nullptr));
-			temp = temp->getLink();
+			temp->link = new Node(word[index]);
+			temp = temp->link;
 			index++;
 			for (size_t i = index; i < length; i++) {
-				temp->setNext(new Node(word[i], nullptr, nullptr));
-				temp = temp->getNext();
+				temp->next = new Node(word[i]);
+				temp = temp->next;
 			}
 			return temp;
 		}
@@ -65,13 +44,13 @@ Node* insert_word(Node* temp, char* word, size_t length, size_t index) {
 	else {
 		index++;
 		if (index < length) {
-			if (temp->getNext() != nullptr) {
-				return insert_word(temp->getNext(), word, length, index);
+			if (temp->next) {
+				return insert_word(temp->next, word, length, index);
 			}
 			else {
 				for (size_t i = index; i < length; i++) {
-					temp->setNext(new Node(word[i], nullptr, nullptr));
-					temp = temp->getNext();
+					temp->next = new Node(word[i]);
+					temp = temp->next;
 				}
 				return temp;
 			}
@@ -82,22 +61,32 @@ Node* insert_word(Node* temp, char* word, size_t length, size_t index) {
 	}
 }
 
-Node* find(Node* temp, char* word, size_t length, size_t index) {
-	if (temp->getKey() == word[index]) {			
+//вспомогательная функция поиска элемента в дереве
+Node* Tree::find(Node* temp, const char* word, size_t length, size_t index) {
+	assert(word && index < length);
+	if (!temp) {
+		return nullptr;
+	}
+	if (temp->key == word[index]) {			
 		index++;
-		if (index == length && temp->getIsLeaf() == true)
-			return temp;
+		if (index == length) {
+			if (temp->hasValue) {
+				return temp;
+			}
+			else
+				return nullptr;
+		}
 		else {
-			if (temp->getNext() != nullptr) {
-				return find(temp->getNext(), word, length, index);
+			if (temp->next) {
+				return find(temp->next, word, length, index);
 			}
 			else
 				return nullptr;
 		}
 	}
 	else {
-		if (temp->getLink() != nullptr) {
-			return find(temp->getLink(), word, length, index);
+		if (temp->link) {
+			return find(temp->link, word, length, index);
 		}
 		else {
 			return nullptr;
@@ -105,81 +94,77 @@ Node* find(Node* temp, char* word, size_t length, size_t index) {
 	}
 }
 
-void compare(Node* temp, char* word, size_t length, size_t index) {
-	if (temp->getKey() == word[index]) {
+//вспомогательная функция сравнения слов в дереве
+void Tree::compare(Node* temp, const char* word, size_t length, size_t index) {
+	assert(word && index < length);
+	if (!temp) {
+		return;
+	}
+	if (temp->key == word[index]) {
 		index++;
-		if (index == length && temp->getIsLeaf()) {
-			if (temp->getNext() != nullptr) {
-				compare(temp->getNext(), word, length, index);
+		if (index == length) {
+			if (temp->next) {
+				std::ostream& stream(std::cout);//
+				orderInSubTree(temp->next, stream);
 			}
-			if (temp->getLink() != nullptr)
-				compare(temp->getLink(), word, length, --index);
-			
-			return;
-		}
-		else if (index == length && !temp->getIsLeaf()) {
-			if (temp->getNext() != nullptr)
-				orderInSubTree(temp->getNext());
-			if (temp->getLink() != nullptr)
-				compare(temp->getLink(), word, length, --index);
+			if (temp->link)
+				compare(temp->link, word, length, --index);
 		}
 		else {
-			if (temp->getNext() == nullptr && temp->getLink() == nullptr) {
-				return;
+			if (temp->next) {
+				compare(temp->next, word, length, index);
 			}
-			if (temp->getNext() != nullptr) {
-				compare(temp->getNext(), word, length, index);
+			if (temp->link) {
+				compare(temp->link, word, length, --index);
 			}
-			if (temp->getLink() != nullptr) {
-				compare(temp->getLink(), word, length, --index);
-			}
-			
-			return;
 		}
 	}
-	else if (temp->getKey() < word[index]) {
-		if (temp->getLink() != nullptr) {
-			compare(temp->getLink(), word, length, index);
+	else if (temp->key < word[index]) {
+		if (temp->link) {
+			compare(temp->link, word, length, index);
 		}
 		else
 			return;
 	}
-	else { //(temp->getKey() > word[index]) 
-		if (temp->getIsLeaf())
-			std::cout << temp->getValue() << ' ';
-		if (temp->getNext() != nullptr)
-			orderInSubTree(temp->getNext());
-		if (temp->getLink() != nullptr)
-			compare(temp->getLink(), word, length, --index);
+	else { //(temp->key > word[index]) 
+		if (temp->hasValue)
+			std::cout << temp->value << ' ';
+		if (temp->next) {
+			std::ostream& stream(std::cout);
+			orderInSubTree(temp->next, stream);
+		}
+		if (temp->link)
+			compare(temp->link, word, length, index);
 	}
 }
 
-Node* findLastLink(Node* temp, char* word, size_t length, size_t index, Node* lastLink, Node*& prevLastLink) {
-	if (temp->getKey() == word[index]) {
+//вспомогательная функция поиска последней и предпоследней ссылки для удаления всех элементов в диапазоне
+Node* Tree::findLastLink(Node* temp, const char* word, size_t length, size_t index, Node* lastLink, Node*& prevLastLink) {
+	assert(word && index < length);
+	if (!temp) {
+		return nullptr;
+	}
+	if (temp->key == word[index]) {
 		index++;
-		if (index == length && temp->getIsLeaf() == true)
+		if (index == length && temp->hasValue)
 			return lastLink;
 		else {
-			if (temp->getLink() != nullptr || temp->getIsLeaf() == true) {
+			if (temp->link || temp->hasValue) {
 				if (lastLink != temp) {
 					prevLastLink = lastLink;
 				}
 				lastLink = temp;
 			}
-			//if (temp->getNext() != nullptr) {
-			return findLastLink(temp->getNext(), word, length, index, lastLink, prevLastLink);
-			//}
-			//else
-				//return nullptr;
+			return findLastLink(temp->next, word, length, index, lastLink, prevLastLink);
 		}
 	}
 	else {
-		if (temp->getLink() != nullptr) {
+		if (temp->link) {
 			if (lastLink != temp) {
 				prevLastLink = lastLink;
 			}
-			lastLink = temp->getLink();
-			return findLastLink(temp->getLink(), word, length, index, lastLink, prevLastLink);
+			lastLink = temp->link;
+			return findLastLink(temp->link, word, length, index, lastLink, prevLastLink);
 		}
 		else {
 			std::cout << "Something wrong" << std::endl;
@@ -188,30 +173,41 @@ Node* findLastLink(Node* temp, char* word, size_t length, size_t index, Node* la
 	}
 }
 
-void Tree::insert(char* word, size_t length, int value) {
+void Tree::destroy(Node const* temp)
+{
+	if (temp) {
+		destroy(temp->link);
+		destroy(temp->next);
+		delete temp;
+	}
+}
+
+//метод вставки
+void Tree::insert(const char* word, size_t length, int value) {
 	if (length == 0)
 		return;
 	if (isEmpty()) {
 		size_t index = 0;
-		root = new Node(word[index], nullptr, nullptr);
+		root = new Node(word[index]);
 		index++;
 		Node* temp = root;
 		for (size_t i = index; i < length; i++) {
-			temp->setNext(new Node(word[i], nullptr, nullptr));
-			temp = temp->getNext();
+			temp->next = new Node(word[i]);
+			temp = temp->next;
 		}
-		temp->setIsLeaf(true);
-		temp->setValue(value);
+		temp->hasValue = true;
+		temp->value = value;
 		return;
 	}
 	Node* temp = root;
 	size_t index = 0;
 	temp = insert_word(temp, word, length, index);
-	temp->setIsLeaf(true);
-	temp->setValue(value);
+	temp->hasValue = true;
+	temp->value = value;
 }
 
-void Tree::remove(char* word, size_t length) {
+//метод удаления
+void Tree::remove(const char* word, size_t length) {
 	if (isEmpty() || length == 0) {
 		std::cout << "Tree or word is empty" << std::endl;
 		return;
@@ -221,41 +217,43 @@ void Tree::remove(char* word, size_t length) {
 	Node* prevLastLink = nullptr;
 	int index = 0;
 	Node* wordIsExist = find(temp, word, length, index);
-	if (wordIsExist != nullptr) {
-		if (wordIsExist->getNext() != nullptr) {
-			wordIsExist->setIsLeaf(false);
+	if (wordIsExist) {
+		if (wordIsExist->next) {
+			wordIsExist->hasValue = false;
 			return;
 		}
 		else {
 			temp = root;
 			lastLink = findLastLink(temp, word, length, index, lastLink, prevLastLink);
 			temp = lastLink;
-			if (!temp->getIsLeaf() && temp->getLink() != nullptr) {
-				if (prevLastLink->getNext() != temp) {
-					prevLastLink = prevLastLink->getNext();
-					prevLastLink->setLink(temp->getLink());
+			if (wordIsExist == root || lastLink == root) {
+				if (lastLink->link) {
+					root = lastLink->link;
+					lastLink->link = nullptr;
+					delete lastLink;
+				}
+				else
+					delete lastLink;
+				return;
+			}
+			if (!temp->hasValue && temp->link) {
+				if (prevLastLink->next != temp) {
+					prevLastLink = prevLastLink->next;
+					prevLastLink->link = temp->link;
 				}
 				else {
-					if (temp->getIsLeaf()) {
-						
-					}
-					else {
-						prevLastLink->setNext(temp->getLink());
+					if (!temp->hasValue) {
+						prevLastLink->next = temp->link;
 					}
 				}
-				//prevLastLink->setLink(temp->getLink());
 			}
-			if (temp->getIsLeaf()) {
-				lastLink = lastLink->getNext();
-				temp->setNext(nullptr);
+			if (temp->hasValue) {
+				lastLink = lastLink->next;
+				temp->next = nullptr;
 				temp = lastLink;
 			}
-			while (lastLink != wordIsExist) {
-				lastLink = lastLink->getNext();
-				delete temp;
-				temp = lastLink;
-			}
-			delete wordIsExist;
+			lastLink->link = nullptr;
+			delete lastLink;
 		}
 	}
 	else {
@@ -264,7 +262,8 @@ void Tree::remove(char* word, size_t length) {
 	}
 }
 
-int Tree::search(char* word, size_t length) {
+//метод поиска
+int Tree::search(const char* word, size_t length) const{
 	if (isEmpty() || length == 0) {
 		std::cout << "Tree or word is empty" << std::endl;
 		return -1;
@@ -272,9 +271,9 @@ int Tree::search(char* word, size_t length) {
 	Node* temp = root;
 	int index = 0;
 	Node* result = find(temp, word, length, index);
-	if (result != nullptr) {
-		std::cout << result->getValue() << ' ';
-		return result->getValue();
+	if (result) {
+		std::cout << result->value << ' ';
+		return result->value;
 	}
 	else {
 		std::cout << -1 << ' ';
@@ -282,17 +281,17 @@ int Tree::search(char* word, size_t length) {
 	}
 }
 
-void Tree::wordCmp(char* word, size_t length) {
+//метод сравнения
+void Tree::wordCmp(const char* word, size_t length) const {
 	if (isEmpty() || length == 0) {
 		std::cout << "Tree or word is empty" << std::endl;
 		return;
 	}
 	Node* temp = root;
-	int index = 0;
-	compare(temp, word, length, index);//
+	size_t index = 0;
+	compare(temp, word, length, index);
 }
 
 Tree::~Tree() {
+	destroy(root);
 }
-
-
